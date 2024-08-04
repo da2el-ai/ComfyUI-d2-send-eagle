@@ -27,6 +27,7 @@ ComfyUIで生成した画像を画像管理ソフト [Eagle](https://en.eagle.co
   - `{width}` `{height}`: 画像の幅、高さ
   - `{steps}`: 生成ステップ数
   - `{seed}`: 生成シード
+- `eagle_folder`: Eagleのフォルダ名、またはフォルダIDを指定。フォルダが存在しなければ新規作成する
 
 
 ## その他の機能
