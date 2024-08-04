@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import json
+from typing import Dict, Optional, TypedDict, Union, List
 
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
@@ -13,6 +14,19 @@ from .modules.eagle_api import EagleAPI
 from .modules.prompt_info_extractor import PromptInfoExtractor
 
 FORCE_WRITE_PROMPT = False
+
+class ParamsInfo(TypedDict):
+    format: str
+    lossless_webp: bool
+    save_tags: bool
+    filename_template: str
+    eagle_folder: str
+    compression: int
+    positive: str
+    negative: str
+    memo_text: str
+    prompt: Optional[Dict]
+    extra_pnginfo: Optional[Dict]
 
 
 class D2_SendEagle:
@@ -85,27 +99,28 @@ class D2_SendEagle:
     def add_item(
         self,
         images,
-        format="webp",
-        lossless_webp=False,
-        save_tags=True,
+        format = "webp",
+        lossless_webp = False,
+        save_tags = True,
         filename_template = "{model}-{width}-{height}-{seed}",
         eagle_folder = "",
-        compression=80,
-        positive=None,
-        negative=None,
-        memo_text=None,
-        prompt=None,
-        extra_pnginfo=None,
+        compression = 80,
+        positive = "",
+        negative = "",
+        memo_text = "",
+        prompt: Optional[Dict] = None,
+        extra_pnginfo: Optional[Dict] = None,
     ):
         self.output_folder, self.subfolder_name = self.get_output_folder()
         self.eagle_api = EagleAPI()
 
         results = list()
-        params = {
+        params: ParamsInfo = {
             "format": format,
             "lossless_webp": lossless_webp,
             "save_tags": save_tags,
             "filename_template": filename_template,
+            "eagle_folder": eagle_folder,
             "compression": compression,
             "positive": positive,
             "negative": negative,
@@ -122,12 +137,15 @@ class D2_SendEagle:
 
     # ######################
     # イメージオブジェクトを作成
-    def create_image_object(self, image, params) -> dict:
+    def create_image_object(self, image, params:ParamsInfo) -> dict:
         normalized_pixels = 255.0 * image.cpu().numpy()
         img = Image.fromarray(np.clip(normalized_pixels, 0, 255).astype(np.uint8))
 
         # 画像をローカルに保存
         file_name, file_full_path = self.save_image(img, params)
+
+        # Eagleフォルダが指定されているならフォルダIDを取得
+        folder_id = self.eagle_api.find_or_create_folder(params["eagle_folder"])
 
         # Send image to Eagle
         item = {"path": file_full_path, "name": file_name}
@@ -138,7 +156,7 @@ class D2_SendEagle:
         if(params["save_tags"]):
             item["tags"] = util.get_prompt_tags(params["positive"])
 
-        _ret = self.eagle_api.add_item_from_path(data=item)
+        _ret = self.eagle_api.add_item_from_path(data=item, folder_id=folder_id)
 
         return {
             "filename": file_name, "subfolder": self.subfolder_name, "type": self.type
