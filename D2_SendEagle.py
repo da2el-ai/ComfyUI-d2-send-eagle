@@ -18,7 +18,7 @@ FORCE_WRITE_PROMPT = False
 class ParamsInfo(TypedDict):
     format: str
     lossless_webp: bool
-    save_tags: bool
+    save_tags: str
     filename_template: str
     eagle_folder: str
     compression: int
@@ -54,11 +54,13 @@ class D2_SendEagle:
                     "INT",
                     {"default": 80, "min": 1, "max": 100, "step": 1},
                 ),
-                # プロンプトをEagleタグに保存するか
-                "save_tags": (
-                    "BOOLEAN",
-                    {"default": False, "label_on": "save", "label_off": "none"},
-                ),
+                # プロンプトやモデルをEagleタグに保存するか
+                "save_tags": ([
+                    "None",
+                    "Prompt + Checkpoint",
+                    "Prompt",
+                    "Checkpoint",
+                ],),
                 # 保存するファイル名
                 "filename_template": (
                     "STRING",
@@ -101,7 +103,7 @@ class D2_SendEagle:
         images,
         format = "webp",
         lossless_webp = False,
-        save_tags = True,
+        save_tags = "None",
         filename_template = "{model}-{width}-{height}-{seed}",
         eagle_folder = "",
         compression = 80,
@@ -141,20 +143,29 @@ class D2_SendEagle:
         normalized_pixels = 255.0 * image.cpu().numpy()
         img = Image.fromarray(np.clip(normalized_pixels, 0, 255).astype(np.uint8))
 
+        # 生成パラメータ取得
+        generate_params = self.get_generate_params(img, params)
+
         # 画像をローカルに保存
-        file_name, file_full_path = self.save_image(img, params)
+        file_name, file_full_path = self.save_image(img, params, generate_params)
 
         # Eagleフォルダが指定されているならフォルダIDを取得
         folder_id = self.eagle_api.find_or_create_folder(params["eagle_folder"])
 
         # Send image to Eagle
-        item = {"path": file_full_path, "name": file_name}
+        item = {
+            "path": file_full_path,
+            "name": file_name,
+            "annotation": "",
+            "tags": [],
+        }
+
         item["annotation"] = util.make_annotation_text(
             params["positive"], params["negative"], params["memo_text"]
         )
 
-        if(params["save_tags"]):
-            item["tags"] = util.get_prompt_tags(params["positive"])
+        # タグを取得
+        item["tags"] = self.get_tags(params, generate_params)
 
         _ret = self.eagle_api.add_item_from_path(data=item, folder_id=folder_id)
 
@@ -163,15 +174,29 @@ class D2_SendEagle:
         }
 
     # ######################
+    # 登録タグを取得
+    def get_tags(self, params:ParamsInfo, generate_params) -> list:
+        if(params["save_tags"] == "Prompt + Checkpoint"):
+          return [*util.get_prompt_tags(params["positive"]), generate_params["model"]]
+
+        elif(params["save_tags"] == "Prompt"):
+          return util.get_prompt_tags(params["positive"])
+
+        elif(params["save_tags"] == "Checkpoint"):
+          return [generate_params["model"]]
+
+        return []
+
+
+    # ######################
     # 画像をローカルに保存
-    def save_image(self, img, params):
+    def save_image(self, img, params, generate_params):
         file_name = ""
         file_full_path = ""
-        filename_params = self.get_filename_params(img, params)
 
         if format == "webp":
             # Save webp image file
-            file_name = self.get_filename(params["filename_template"], 'webp', filename_params)
+            file_name = self.get_filename(params["filename_template"], 'webp', generate_params)
             file_full_path = os.path.join(self.output_folder, file_name)
 
             exif_data = util.get_exif_from_prompt(
@@ -187,7 +212,7 @@ class D2_SendEagle:
 
         else:
             # Save png image file
-            file_name = self.get_filename(params["filename_template"], 'png', filename_params)
+            file_name = self.get_filename(params["filename_template"], 'png', generate_params)
             file_full_path = os.path.join(self.output_folder, file_name)
 
             metadata = PngInfo()
@@ -217,8 +242,8 @@ class D2_SendEagle:
 
 
     # ######################
-    # ファイルネーム用パラメーターを取得
-    def get_filename_params(self, img, params) -> dict:
+    # 生成パラメーターを取得
+    def get_generate_params(self, img, params) -> dict:
         width, height = img.size
         gen_data = PromptInfoExtractor(params["prompt"])
 
