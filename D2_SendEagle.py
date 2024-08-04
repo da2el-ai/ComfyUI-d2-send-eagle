@@ -50,6 +50,12 @@ class D2_SendEagle:
                     "STRING",
                     {"multiline": False, "default":"{model}-{width}-{height}-{seed}"},
                 ),
+                # Eagleフォルダ
+                "eagle_folder": (
+                    "STRING",
+                    {"default": ""}
+                ),
+
                 # ポジティブプロンプト
                 "positive": (
                     "STRING",
@@ -83,6 +89,7 @@ class D2_SendEagle:
         lossless_webp=False,
         save_tags=True,
         filename_template = "{model}-{width}-{height}-{seed}",
+        eagle_folder = "",
         compression=80,
         positive=None,
         negative=None,
@@ -195,7 +202,6 @@ class D2_SendEagle:
     # ファイルネーム用パラメーターを取得
     def get_filename_params(self, img, params) -> dict:
         width, height = img.size
-        print(params["prompt"])
         gen_data = PromptInfoExtractor(params["prompt"])
 
         model = ""
