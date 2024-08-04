@@ -20,7 +20,11 @@ ComfyUIで生成した画像を画像管理ソフト [Eagle](https://en.eagle.co
 - `format`: 保存形式を Webp / PNG から選択
 - `lossless_webp`: Webp は可逆（lossless）か不可逆（lossy）から選択
 - `compression`: lossyの時の圧縮率を指定
-- `save_tags`: プロンプトを Eagle のタグとして保存するか選択
+- `save_tags`: Eagle のタグとして保存するか選択
+  - `None`: 保存しない
+  - `Prompt + Checkpoint`: プロンプトとモデル名を保存
+  - `Prompt`: プロンプトを保存
+  - `Checkpoint`: モデル名を保存
 - `filename_template`: 保存ファイル名のテンプレート。`{}` 内に該当パラメータが入る
   - 初期設定：`{model}-{width}-{height}-{seed}`
   - `{model}`: checkpoint名
