@@ -44,25 +44,19 @@ Eagleに送信する他に、ローカル環境の下記フォルダにも画像
 
 ## インストール
 
-### コマンドプロンプトを使う場合
-
-1. Navigaate to ComfyUI custom nodes directory
-2. `git clone https://github.com/da2el-ai/ComfyUI-d2-send-eagle`
-
 ### ComfyUI Manager を使う場合
 
 1. ComfyUI Manager を開く
-2. Install via Git URL をクリック
-3. `https://github.com/da2el-ai/ComfyUI-d2-send-eagle` を入力
+2. `Custom Nodes Manager` をクリック
+3. `D2 Send Eagle` を検索
+4. `Install` をクリック
+5. ComfyUI を再起動
 
-`This action is not allowed with this security level configuration.` というエラーが表示されたら
+### コマンドプロンプトを使う場合
 
-1. `{ComfyUIインストールフォルダ}/custom_nodes/ComfyUI-Manager/config.ini` をメモ帳で開く
-2. `security_level = weak` のように書き換える。該当行がなければ追加する。
-3. ComfyUIを再起動し、ComfyUI Managerからインストール
-5. インストール完了したら再びComfyUIを再起動
-
-インストール後に `security_level = weak` の行を削除したほうがいいですが、必須ではありません。
+1. コマンドプロンプトを開く
+1. `{ComfyUIインストールフォルダ}/custom_nodes` に移動
+2. `git clone https://github.com/da2el-ai/ComfyUI-d2-send-eagle`
 
 
 ## 制限事項
