@@ -194,7 +194,7 @@ class D2_SendEagle:
         file_name = ""
         file_full_path = ""
 
-        if format == "webp":
+        if params["format"] == "webp":
             # Save webp image file
             file_name = self.get_filename(params["filename_template"], 'webp', generate_params)
             file_full_path = os.path.join(self.output_folder, file_name)
