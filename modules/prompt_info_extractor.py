@@ -91,11 +91,10 @@ class PromptInfoExtractor:
         return sorted(ksampler_items, key=lambda x: int(x[0]))
 
     def extract_model_name(self, item):
-        return (
-            self.get_ckpt_name(item["inputs"]["model"][0])
-            .replace("/", "_")
-            .replace("\\", "_")
-        )
+        ckpt_name = self.get_ckpt_name(item["inputs"]["model"][0])
+        if ckpt_name is None:
+            return ""
+        return ckpt_name.replace("/", "_").replace("\\", "_")
 
     def get_ckpt_name(self, node_number):
         """Recursively search for the 'ckpt_name' key starting from the specified node."""
@@ -104,6 +103,8 @@ class PromptInfoExtractor:
             return node["inputs"]["ckpt_name"]
         if "model" in node["inputs"]:
             return self.get_ckpt_name(node["inputs"]["model"][0])
+        if "unet_name" in node["inputs"]:
+            return node["inputs"]["unet_name"]
         return None
 
     def extract_latent_image_info(self, item):
