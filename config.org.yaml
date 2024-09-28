@@ -1,0 +1,10 @@
+ksamplers:
+  - "KSampler"
+  - "KSamplerAdvanced"
+  - "KSampler With Refiner (Fooocus)"
+  - "BNK_TiledKSampler"
+  - "KSampler (Efficient)"
+  - "GenerateNAID"
+
+output_format: "{positive}\n\nNegative prompt:{negative}\nSteps: {steps}, Sampler: {sampler_name} {scheduler}, CFG scale: {cfg}, Seed: {seed}, Size: {width}x{height}, Model: {model_name}\n\nMemo: {memo}"
+

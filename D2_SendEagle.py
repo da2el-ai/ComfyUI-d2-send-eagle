@@ -1,7 +1,8 @@
+import json
 import os
 import numpy as np
 import json
-from typing import Dict, Optional, TypedDict, Union, List
+from typing import Dict, Optional
 
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
@@ -11,22 +12,12 @@ import folder_paths
 
 from .modules.util import util
 from .modules.eagle_api import EagleAPI
-from .modules.prompt_info_extractor import PromptInfoExtractor
+from .modules.params_extractor import ParamsExtractor
+
+from .my_types import TNodeParams, TGenInfo
 
 FORCE_WRITE_PROMPT = False
 
-class ParamsInfo(TypedDict):
-    format: str
-    lossless_webp: bool
-    save_tags: str
-    filename_template: str
-    eagle_folder: str
-    compression: int
-    positive: str
-    negative: str
-    memo_text: str
-    prompt: Optional[Dict]
-    extra_pnginfo: Optional[Dict]
 
 
 class D2_SendEagle:
@@ -35,14 +26,24 @@ class D2_SendEagle:
         self.type = "output"
         self.output_folder = ""
         self.subfolder_name = ""
-        self.eagle_api = None
+        self.eagle_api:EagleAPI = EagleAPI()
 
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": {
                 "images": ("IMAGE",),
+                # ポジティブプロンプト
+                "positive": (
+                    "STRING",
+                    {"forceInput": True, "multiline": True},
+                ),
+                # ネガティブプロンプト
+                "negative": (
+                    "STRING",
+                    {"forceInput": True, "multiline": True},
+                ),
                 "format": (["webp", "png"],),
                 # webpの時に可逆（lossless）不可逆（lossy）どちらにするか
                 "lossless_webp": (
@@ -71,17 +72,8 @@ class D2_SendEagle:
                     "STRING",
                     {"default": ""}
                 ),
-
-                # ポジティブプロンプト
-                "positive": (
-                    "STRING",
-                    {"forceInput": True, "multiline": True},
-                ),
-                # ネガティブプロンプト
-                "negative": (
-                    "STRING",
-                    {"forceInput": True, "multiline": True},
-                ),
+            },
+            "optional":{
                 # その他メモ
                 "memo_text": (
                     "STRING",
@@ -97,7 +89,8 @@ class D2_SendEagle:
     CATEGORY = "D2"
 
     # ######################
-    # ノード実行でEagleに画像を送る
+    # ノード実行で呼ばれる関数
+    # Eagleに画像を送る
     def add_item(
         self,
         images,
@@ -114,10 +107,9 @@ class D2_SendEagle:
         extra_pnginfo: Optional[Dict] = None,
     ):
         self.output_folder, self.subfolder_name = self.get_output_folder()
-        self.eagle_api = EagleAPI()
 
         results = list()
-        params: ParamsInfo = {
+        params: TNodeParams = {
             "format": format,
             "lossless_webp": lossless_webp,
             "save_tags": save_tags,
@@ -139,33 +131,36 @@ class D2_SendEagle:
 
     # ######################
     # イメージオブジェクトを作成
-    def create_image_object(self, image, params:ParamsInfo) -> dict:
+    def create_image_object(self, image, params:TNodeParams) -> dict:
         normalized_pixels = 255.0 * image.cpu().numpy()
         img = Image.fromarray(np.clip(normalized_pixels, 0, 255).astype(np.uint8))
 
-        # 生成パラメータ取得
-        generate_params = self.get_generate_params(img, params)
+        # 生成パラメータ整理
+        paramsExtractor = self.create_generate_params(img, params)
+        # 必要な生成パラメーターをまとめたもの
+        gen_info = paramsExtractor.gen_info
+        # EagleやPNGInfo用に整形したもの
+        formated_info = paramsExtractor.format_info(params["memo_text"])
+
+        # print("generate_params", gen_info)
+        # print("format_info", formated_info)
 
         # 画像をローカルに保存
-        file_name, file_full_path = self.save_image(img, params, generate_params)
+        file_name, file_full_path = self.save_image(img, params, gen_info, formated_info)
 
         # Eagleフォルダが指定されているならフォルダIDを取得
         folder_id = self.eagle_api.find_or_create_folder(params["eagle_folder"])
 
-        # Send image to Eagle
+        # Eagleに送る情報を作成
         item = {
             "path": file_full_path,
             "name": file_name,
-            "annotation": "",
+            "annotation": formated_info,
             "tags": [],
         }
 
-        item["annotation"] = util.make_annotation_text(
-            params["positive"], params["negative"], params["memo_text"]
-        )
-
         # タグを取得
-        item["tags"] = self.get_tags(params, generate_params)
+        item["tags"] = self.get_tags(params, gen_info)
 
         _ret = self.eagle_api.add_item_from_path(data=item, folder_id=folder_id)
 
@@ -175,44 +170,42 @@ class D2_SendEagle:
 
     # ######################
     # 登録タグを取得
-    def get_tags(self, params:ParamsInfo, generate_params) -> list:
+    def get_tags(self, params:TNodeParams, gen_info:TGenInfo) -> list:
         if(params["save_tags"] == "Prompt + Checkpoint"):
-          return [*util.get_prompt_tags(params["positive"]), generate_params["model"]]
+          return [*util.get_prompt_tags(gen_info["positive"]), gen_info["model_name"]]
 
         elif(params["save_tags"] == "Prompt"):
-          return util.get_prompt_tags(params["positive"])
+          return util.get_prompt_tags(gen_info["positive"])
 
         elif(params["save_tags"] == "Checkpoint"):
-          return [generate_params["model"]]
+          return [gen_info["model_name"]]
 
         return []
 
 
     # ######################
     # 画像をローカルに保存
-    def save_image(self, img, params, generate_params):
+    def save_image(self, img, params:TNodeParams, gen_info:TGenInfo, formated_info:str):
         file_name = ""
         file_full_path = ""
 
         if params["format"] == "webp":
             # Save webp image file
-            file_name = self.get_filename(params["filename_template"], 'webp', generate_params)
+            file_name = self.get_filename(params["filename_template"], 'webp', gen_info)
             file_full_path = os.path.join(self.output_folder, file_name)
 
-            exif_data = util.get_exif_from_prompt(
-                img.getexif(), params["prompt"], params["extra_pnginfo"]
-            )
+            exif = util.get_exif_from_prompt(img, formated_info, params["extra_pnginfo"], params["prompt"])
 
             img.save(
                 file_full_path,
                 quality = params["compression"],
-                exif = exif_data,
+                exif = exif,
                 lossless = params["lossless_webp"],
             )
 
         else:
             # Save png image file
-            file_name = self.get_filename(params["filename_template"], 'png', generate_params)
+            file_name = self.get_filename(params["filename_template"], 'png', gen_info)
             file_full_path = os.path.join(self.output_folder, file_name)
 
             metadata = PngInfo()
@@ -226,6 +219,7 @@ class D2_SendEagle:
             img.save(file_full_path, pnginfo=metadata, compress_level=4)
 
         return file_name, file_full_path
+
 
     # ######################
     # 画像保存パスを取得
@@ -243,39 +237,24 @@ class D2_SendEagle:
 
     # ######################
     # 生成パラメーターを取得
-    def get_generate_params(self, img, params) -> dict:
-        width, height = img.size
-        gen_data = PromptInfoExtractor(params["prompt"])
+    def create_generate_params(self, img, params:TNodeParams) -> ParamsExtractor:
+        # print("[SendEagle] create_generate_params - ", params )
+        paramsExtractor = ParamsExtractor(params)
+        paramsExtractor.gen_info["width"] = img.width
+        paramsExtractor.gen_info["height"] = img.height
 
-        model = ""
-        steps = ""
-        seed = ""
-
-        if gen_data and hasattr(gen_data, 'info') and gen_data.info:
-            model = os.path.splitext(gen_data.info.get("model_name", ""))[0]
-            steps = gen_data.info.get("steps", "")
-            seed = gen_data.info.get("seed", "")
-
-        return {
-            "width": width,
-            "height": height,
-            "model": model,
-            "steps": steps,
-            "seed": seed,
-        }
+        return paramsExtractor
 
 
     # ######################
     # ファイルネームを取得
-    def get_filename(self, template:str, ext:str, filename_params) -> str:
+    def get_filename(self, template:str, ext:str, gen_info:TGenInfo) -> str:
         base = template.format(
-          width = filename_params["width"],
-          height = filename_params["height"],
-          model = filename_params["model"],
-          steps = filename_params["steps"],
-          seed = filename_params["seed"],
+          width = gen_info["width"],
+          height = gen_info["height"],
+          model = gen_info["model_name"],
+          steps = gen_info["steps"],
+          seed = gen_info["seed"],
         )
 
         return f"{util.get_datetime_str_msec()}-{base}.{ext}"
-
-

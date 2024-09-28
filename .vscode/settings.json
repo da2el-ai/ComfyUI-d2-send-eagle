@@ -24,4 +24,6 @@
   "files.associations": {
     "*.vue": "vue"
   },
+  "python.analysis.extraPaths": ["."],
+  "python.autoComplete.extraPaths": ["."]
 }
