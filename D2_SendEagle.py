@@ -83,7 +83,8 @@ class D2_SendEagle:
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
 
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("STRING", "STRING", )
+    RETURN_NAMES = ("positive", "negative", )
     FUNCTION = "add_item"
     OUTPUT_NODE = True
     CATEGORY = "D2"
@@ -126,7 +127,10 @@ class D2_SendEagle:
         for image in images:
           results.append(self.create_image_object(image, params))
 
-        return {"ui": {"images": results}}
+        return {
+            "ui": {"images": results},
+            "result": (positive, negative, )
+        }
 
 
     # ######################
