@@ -106,6 +106,11 @@ You can add more by editing `config.yaml`.
 
 ## Change Log
 
+- 2024/10/04
+  - Added a toggle button to hide image previews
+    - This was added because when the preview was enlarged, the `memo_text` also became larger and obstructive
+  - Added IMAGE to output
+    - This is just a pass-through. It's not necessary, but we added it anyway
 - 2024/09/29
   - Added support for NovelAI generation node GenerateNAID
   - Made it possible to specify settings in `config.yaml`

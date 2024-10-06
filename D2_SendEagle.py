@@ -72,6 +72,11 @@ class D2_SendEagle:
                     "STRING",
                     {"default": ""}
                 ),
+                # プレビュー表示するか
+                "preview": (
+                    "BOOLEAN",
+                    {"default": True, "label_on": "ON", "label_off": "OFF"},
+                ),
             },
             "optional":{
                 # その他メモ
@@ -83,8 +88,8 @@ class D2_SendEagle:
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
 
-    RETURN_TYPES = ("STRING", "STRING", )
-    RETURN_NAMES = ("positive", "negative", )
+    RETURN_TYPES = ("STRING", "STRING", "IMAGE")
+    RETURN_NAMES = ("positive", "negative", "IMAGE", )
     FUNCTION = "add_item"
     OUTPUT_NODE = True
     CATEGORY = "D2"
@@ -103,6 +108,7 @@ class D2_SendEagle:
         compression = 80,
         positive = "",
         negative = "",
+        preview = True,
         memo_text = "",
         prompt: Optional[Dict] = None,
         extra_pnginfo: Optional[Dict] = None,
@@ -127,9 +133,14 @@ class D2_SendEagle:
         for image in images:
           results.append(self.create_image_object(image, params))
 
+        if(preview):
+            return {
+                "ui": {"images": results},
+                "result": (positive, negative, images,)
+            }
+
         return {
-            "ui": {"images": results},
-            "result": (positive, negative, )
+            "result": (positive, negative, images,)
         }
 
 
