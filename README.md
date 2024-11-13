@@ -61,11 +61,11 @@ It's an extension of an existing custom node [ComfyUI-send-eagle-slim](https://g
 - `negative`
   - Negative prompt
 - `format`
-  - Choose between webp / png for saving format
+  - Choose between webp / png / jpeg for saving format
 - `lossless_webp`
   - Choose between lossless or lossy. Effective when `webp` is selected.
 - `compression`
-  - Specify compression rate. Effective when `lossy` is selected for webp.
+  - Specifies the compression rate. Enabled when selecting either `lossy` for webp or when choosing `jpeg`.
 - `save_tags`
   - Choose whether to save as Eagle tags
   - `None`: Don't save
@@ -106,6 +106,8 @@ You can add more by editing `config.yaml`.
 
 ## Change Log
 
+- 2024/11/13
+  - Compatible with JPEG format
 - 2024/10/04
   - Added a toggle button to hide image previews
     - This was added because when the preview was enlarged, the `memo_text` also became larger and obstructive

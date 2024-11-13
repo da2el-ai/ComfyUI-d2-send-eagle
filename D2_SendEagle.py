@@ -44,16 +44,16 @@ class D2_SendEagle:
                     "STRING",
                     {"forceInput": True, "multiline": True},
                 ),
-                "format": (["webp", "png"],),
+                "format": (["webp", "png", "jpeg"],),
                 # webpの時に可逆（lossless）不可逆（lossy）どちらにするか
                 "lossless_webp": (
                     "BOOLEAN",
                     {"default": True, "label_on": "lossless", "label_off": "lossy"},
                 ),
-                # lossy の時の圧縮率
+                # webp lossy または jpeg の時の圧縮率
                 "compression": (
                     "INT",
-                    {"default": 80, "min": 1, "max": 100, "step": 1},
+                    {"default": 90, "min": 1, "max": 100, "step": 1},
                 ),
                 # プロンプトやモデルをEagleタグに保存するか
                 "save_tags": ([
@@ -65,7 +65,7 @@ class D2_SendEagle:
                 # 保存するファイル名
                 "filename_template": (
                     "STRING",
-                    {"multiline": False, "default":"{model}-{width}-{height}-{seed}"},
+                    {"multiline": False, "default":"{model}-{seed}"},
                 ),
                 # Eagleフォルダ
                 "eagle_folder": (
@@ -216,6 +216,20 @@ class D2_SendEagle:
                 quality = params["compression"],
                 exif = exif,
                 lossless = params["lossless_webp"],
+            )
+
+        elif params["format"] == "jpeg":
+            # Save jpeg image file
+            file_name = self.get_filename(params["filename_template"], 'jpeg', gen_info)
+            file_full_path = os.path.join(self.output_folder, file_name)
+
+            exif = util.get_exif_from_prompt(img, formated_info, params["extra_pnginfo"], params["prompt"])
+
+            img.save(
+                file_full_path,
+                quality = params["compression"],
+                optimize = True,
+                exif = exif,
             )
 
         else:

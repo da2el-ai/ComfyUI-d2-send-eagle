@@ -60,11 +60,11 @@ ComfyUIで生成した画像を画像管理ソフト [Eagle](https://en.eagle.co
 - `negative`
   - ネガティブプロンプト
 - `format`
-  - 保存形式を webp / png から選択
+  - 保存形式を webp / png / jpeg から選択
 - `lossless_webp`
   - 可逆（lossless）か不可逆（lossy）から選択。`webp` を選択した時に有効。
 - `compression`
-  - 圧縮率を指定。webp で `lossy` を選択したときに有効。
+  - 圧縮率を指定。webp で `lossy` を選択するか、または `jpeg` を選択したときに有効。
 - `save_tags`
   - Eagle のタグとして保存するか選択
   - `None`: 保存しない
@@ -105,6 +105,8 @@ Eagleに送信する他に、ローカル環境の下記フォルダにも画像
 
 ## 変更履歴
 
+- 2024/11/13
+  - JPEG方式に対応
 - 2024/10/04
   - イメージプレビューを非表示にするトグルボタンを追加
     - プレビューを大きくすると `memo_text` も一緒に大きくなって邪魔だったので

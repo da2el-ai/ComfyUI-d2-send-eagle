@@ -60,9 +60,9 @@
 - `negative`
   - 負面提示詞
 - `format`
-  - 從 webp / png 中選擇保存格式
+  - 從 webp / png / jpeg 中選擇保存格式
 - `lossless_webp`
-  - 選擇無損（lossless）或有損（lossy）。選擇 `webp` 時有效。
+  - 指定壓縮率。在選擇 webp 的 `lossy` 模式或選擇 `jpeg` 格式時有效。
 - `compression`
   - 指定壓縮率。在 webp 中選擇 `lossy` 時有效。
 - `save_tags`
@@ -105,6 +105,8 @@
 
 ## 更新日誌
 
+- 2024/11/13
+  - 支援 JPEG 格式
 - 2024/10/04
   - 新增切換按鈕以隱藏圖片預覽
     - 新增此功能是因為當預覽放大時，`memo_text` 也會變大而造成干擾

@@ -1,8 +1,8 @@
 [project]
 name = "comfyui-d2-send-eagle"
 description = "Send generated images to Eagle"
-version = "1.4.0"
-license = {file = "LICENSE"}
+version = "1.5.0"
+license = { file = "LICENSE" }
 
 [project.urls]
 Repository = "https://github.com/da2el-ai/ComfyUI-d2-send-eagle"
