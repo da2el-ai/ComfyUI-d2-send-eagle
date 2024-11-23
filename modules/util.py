@@ -84,7 +84,7 @@ class util:
                 metadata["0th"][inital_exif] = "{}:{}".format(x, json.dumps(extra_pnginfo[x]))
                 inital_exif -= 1
 
-        metadata["Exif"][piexif.ExifIFD.UserComment] = piexif.helper.UserComment.dump(formated_info)
+        metadata["Exif"][piexif.ExifIFD.UserComment] = piexif.helper.UserComment.dump(formated_info, "unicode")
 
         return piexif.dump(metadata)
 
