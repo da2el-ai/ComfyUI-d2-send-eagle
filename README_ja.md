@@ -4,14 +4,28 @@
 
 ComfyUIで生成した画像を画像管理ソフト [Eagle](https://en.eagle.cool/) に送るカスタムノードです。
 
-[ComfyUI-send-eagle-slim](https://github.com/shingo1228/ComfyUI-send-eagle-slim) という既存のカスタムノードを自分の好みに拡張したものです。素晴らしいカスタムノードを制作してくださった Shingo.T 様に感謝です。
+便利なカスタムノードをまとめた [D2 Nodes ComfyUI](https://github.com/da2el-ai/d2-nodes-ComfyUI/)も是非お試しください。
+
 
 <img src="img/image.png">
 
 
 ## サンプルワークフロー
 
-<img src="img/sample_workflow.png">
+### 基本的な構成のワークフロー
+
+<a href="workflow/workflow_basic.png" target="_blkank">
+  <img src="workflow/workflow_basic.png">
+</a>
+
+### D2 Nodes ComfyUI を使ったワークフロー
+
+<a href="workflow/workflow_d2-node.png" target="_blkank">
+  <img src="workflow/workflow_d2-node.png">
+</a>
+
+- チェックポイント名を `D2 Checkpoint Loader` から取得し、`D2 Filename Template` を使って拡張子「.safetensors」を削除している
+- `d2_pipe` から生成パラメータ—を取得している
 
 
 ---
@@ -21,6 +35,26 @@ ComfyUIで生成した画像を画像管理ソフト [Eagle](https://en.eagle.co
 - `image` で受け取った画像を Eagle に送信する
 - `positive`、`negative` で受け取ったテキストを Eagle のメモとして記録する
 - png形式、webp形式が選択可能
+
+### 画像、Eagleのコメントとして記録する生成パラメーター
+
+- positive、negtive、CFG、steps などのパラメーターは D2 Send Eagle に接続している KSampler から取得しています
+- ワークフローによっては取得できないことがあります
+- d2_pipe からパラメータを指定することもできます
+
+
+#### 対応 KSampler
+
+下記の KSampler系に対応しています。
+`config.yaml` を編集すると自分で増やすことができます。
+
+- KSampler
+- KSamplerAdvanced
+- KSampler With Refiner (Fooocus)
+- BNK_TiledKSampler
+- KSampler (Efficient)
+- GenerateNAID
+
 
 ### png形式と webp形式の違い
 
@@ -55,6 +89,8 @@ ComfyUIで生成した画像を画像管理ソフト [Eagle](https://en.eagle.co
 
 - `images`
   - 保存する画像
+- `d2_pipe`
+  - 生成パラメータをまとめたもの
 - `positive`
   - ポジティブプロンプト
 - `negative`
@@ -89,22 +125,13 @@ Eagleに送信する他に、ローカル環境の下記フォルダにも画像
 
 `./ComfyUI/output/YYYY-MM-DD/YYYYMMDD_HHMMss_SSSSSS-{FinalImage_width}-{FinalImage_height}.webp`
 
-### 対応する KSampler
-
-下記の KSampler系に対応しています。
-`config.yaml` を編集すると自分で増やすことができます。
-
-- KSampler
-- KSamplerAdvanced
-- KSampler With Refiner (Fooocus)
-- BNK_TiledKSampler
-- KSampler (Efficient)
-- GenerateNAID
 
 ---
 
 ## 変更履歴
 
+- 2024/12/28
+  - d2-node-comfyui の d2_pipe に対応
 - 2024/11/13
   - JPEG方式に対応
 - 2024/10/04
@@ -120,3 +147,10 @@ Eagleに送信する他に、ローカル環境の下記フォルダにも画像
   - Unet Loaderを使った時にモデル名を取得できないのを修正
 - 2024/08/04
   - とりあえず公開
+
+---
+
+## 謝辞
+
+D2 Send Eagle は [ComfyUI-send-eagle-slim](https://github.com/shingo1228/ComfyUI-send-eagle-slim) という既存のカスタムノードを自分の好みに拡張したものです。素晴らしいカスタムノードを制作してくださった Shingo.T 様に感謝です。
+
