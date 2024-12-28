@@ -14,7 +14,7 @@ from .modules.util import util
 from .modules.eagle_api import EagleAPI
 from .modules.params_extractor import ParamsExtractor
 
-from .my_types import TNodeParams, TGenInfo
+from .my_types import TNodeParams, TGenInfo, D2_TD2Pipe
 
 FORCE_WRITE_PROMPT = False
 
@@ -34,16 +34,6 @@ class D2_SendEagle:
         return {
             "required": {
                 "images": ("IMAGE",),
-                # ポジティブプロンプト
-                "positive": (
-                    "STRING",
-                    {"forceInput": True, "multiline": True},
-                ),
-                # ネガティブプロンプト
-                "negative": (
-                    "STRING",
-                    {"forceInput": True, "multiline": True},
-                ),
                 "format": (["webp", "png", "jpeg"],),
                 # webpの時に可逆（lossless）不可逆（lossy）どちらにするか
                 "lossless_webp": (
@@ -79,11 +69,22 @@ class D2_SendEagle:
                 ),
             },
             "optional":{
+                # ポジティブプロンプト
+                "positive": (
+                    "STRING",
+                    {"forceInput": True, "multiline": True},
+                ),
+                # ネガティブプロンプト
+                "negative": (
+                    "STRING",
+                    {"forceInput": True, "multiline": True},
+                ),
                 # その他メモ
                 "memo_text": (
                     "STRING",
                     {"multiline": True},
                 ),
+                "d2_pipe": ("D2_TD2Pipe",),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -110,48 +111,56 @@ class D2_SendEagle:
         negative = "",
         preview = True,
         memo_text = "",
+        d2_pipe: Optional[D2_TD2Pipe] = None,
         prompt: Optional[Dict] = None,
         extra_pnginfo: Optional[Dict] = None,
     ):
         self.output_folder, self.subfolder_name = self.get_output_folder()
 
         results = list()
-        params: TNodeParams = {
-            "format": format,
-            "lossless_webp": lossless_webp,
-            "save_tags": save_tags,
-            "filename_template": filename_template,
-            "eagle_folder": eagle_folder,
-            "compression": compression,
-            "positive": positive,
-            "negative": negative,
-            "memo_text": memo_text,
-            "prompt": prompt,
-            "extra_pnginfo": extra_pnginfo,
-        }
+        params = TNodeParams(
+            format = format,
+            lossless_webp = lossless_webp,
+            save_tags = save_tags,
+            filename_template = filename_template,
+            eagle_folder = eagle_folder,
+            compression = compression,
+            positive = self.__class__.get_prompt_value(positive, d2_pipe),
+            negative = self.__class__.get_prompt_value(positive, d2_pipe),
+            memo_text = memo_text,
+            prompt = prompt,
+            extra_pnginfo = extra_pnginfo,
+        )
 
         for image in images:
-          results.append(self.create_image_object(image, params))
+          results.append(self.create_image_object(image, params, d2_pipe))
 
         if(preview):
             return {
                 "ui": {"images": results},
-                "result": (positive, negative, images,)
+                "result": (params["positive"], params["negative"], images,)
             }
 
         return {
-            "result": (positive, negative, images,)
+            "result": (params["positive"], params["negative"], images,)
         }
 
+    @classmethod
+    def get_prompt_value(cls, value: Optional[str], d2_pipe: Optional[D2_TD2Pipe]) -> str:
+        if value:
+            return value
+        if d2_pipe is not None and d2_pipe.positive is not None:
+            return d2_pipe.positive
+        return ""
 
     # ######################
     # イメージオブジェクトを作成
-    def create_image_object(self, image, params:TNodeParams) -> dict:
+    def create_image_object(self, image, params:TNodeParams, d2_pipe:D2_TD2Pipe | None) -> dict:
         normalized_pixels = 255.0 * image.cpu().numpy()
         img = Image.fromarray(np.clip(normalized_pixels, 0, 255).astype(np.uint8))
 
         # 生成パラメータ整理
-        paramsExtractor = self.create_generate_params(img, params)
+        paramsExtractor = self.create_generate_params(img, params, d2_pipe)
         # 必要な生成パラメーターをまとめたもの
         gen_info = paramsExtractor.gen_info
         # EagleやPNGInfo用に整形したもの
@@ -266,11 +275,27 @@ class D2_SendEagle:
 
     # ######################
     # 生成パラメーターを取得
-    def create_generate_params(self, img, params:TNodeParams) -> ParamsExtractor:
+    def create_generate_params(self, img, params:TNodeParams, d2_pipe:D2_TD2Pipe | None) -> ParamsExtractor:
         # print("[SendEagle] create_generate_params - ", params )
         paramsExtractor = ParamsExtractor(params)
         paramsExtractor.gen_info["width"] = img.width
         paramsExtractor.gen_info["height"] = img.height
+        
+
+        # pipe が指定されていればその値を入力する
+        if d2_pipe != None:
+            if d2_pipe.steps != None:
+                paramsExtractor.gen_info["steps"] = d2_pipe.steps 
+            if d2_pipe.sampler_name:
+                paramsExtractor.gen_info["sampler_name"] = d2_pipe.sampler_name 
+            if d2_pipe.scheduler:
+                paramsExtractor.gen_info["scheduler"] = d2_pipe.scheduler 
+            if d2_pipe.cfg != None:
+                paramsExtractor.gen_info["cfg"] = d2_pipe.cfg 
+            if d2_pipe.seed != None:
+                paramsExtractor.gen_info["seed"] = d2_pipe.seed 
+            if d2_pipe.ckpt_name:
+                paramsExtractor.gen_info["model_name"] = d2_pipe.ckpt_name.replace("\\", "__")
 
         return paramsExtractor
 
