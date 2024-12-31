@@ -126,7 +126,7 @@ class D2_SendEagle:
             eagle_folder = eagle_folder,
             compression = compression,
             positive = self.__class__.get_prompt_value(positive, d2_pipe),
-            negative = self.__class__.get_prompt_value(positive, d2_pipe),
+            negative = self.__class__.get_prompt_value(negative, d2_pipe),
             memo_text = memo_text,
             prompt = prompt,
             extra_pnginfo = extra_pnginfo,
