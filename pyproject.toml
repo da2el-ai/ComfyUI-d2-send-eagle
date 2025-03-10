@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-d2-send-eagle"
 description = "Send generated images to Eagle"
-version = "1.6.0"
+version = "1.6.1"
 license = { file = "LICENSE" }
 
 [project.urls]
