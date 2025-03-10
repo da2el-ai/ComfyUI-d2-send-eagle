@@ -2,7 +2,7 @@ import json
 import os
 import numpy as np
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Literal
 
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
@@ -125,8 +125,8 @@ class D2_SendEagle:
             filename_template = filename_template,
             eagle_folder = eagle_folder,
             compression = compression,
-            positive = self.__class__.get_prompt_value(positive, d2_pipe),
-            negative = self.__class__.get_prompt_value(negative, d2_pipe),
+            positive = self.__class__.get_prompt_value("positive", positive, d2_pipe),
+            negative = self.__class__.get_prompt_value("negative", negative, d2_pipe),
             memo_text = memo_text,
             prompt = prompt,
             extra_pnginfo = extra_pnginfo,
@@ -146,11 +146,11 @@ class D2_SendEagle:
         }
 
     @classmethod
-    def get_prompt_value(cls, value: Optional[str], d2_pipe: Optional[D2_TD2Pipe]) -> str:
+    def get_prompt_value(cls, mode: Literal["positive","negative"], value: Optional[str], d2_pipe: Optional[D2_TD2Pipe]) -> str:
         if value:
             return value
-        if d2_pipe is not None and d2_pipe.positive is not None:
-            return d2_pipe.positive
+        if d2_pipe is not None and getattr(d2_pipe, mode) is not None:
+            return getattr(d2_pipe, mode)
         return ""
 
     # ######################
